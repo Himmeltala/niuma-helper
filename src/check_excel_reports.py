@@ -6,6 +6,8 @@ import pandas as pd
 import re
 import os
 
+EXCEL_PATH = rf''
+
 
 def get_file_path(file_path):
     """
@@ -109,9 +111,8 @@ def run_checks(df, file_name, file_path):
 
 
 def main():
-    file_path = r"../assets/targets/6月第1周报.xlsx"
-    file_name, parent_path = get_file_path(file_path)
-    df = read_excel_file(file_path)
+    file_name, parent_path = get_file_path(EXCEL_PATH)
+    df = read_excel_file(EXCEL_PATH)
     run_checks(df, file_name, parent_path)
 
 
