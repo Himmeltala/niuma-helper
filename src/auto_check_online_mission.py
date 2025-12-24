@@ -1,11 +1,8 @@
-"""
-@description 填充周报或月报
-"""
-
+import requests
 import re
-import xlwings as xw
+from common.time_util import convert_iso8601_to_hours
 
-EXCEL_PATH = r'../assets/targets/6月第1周报.xlsx'
+
 PATTERN = r'(\d+)\.【([\d.]+)】([^【]+?)【((?:[^】]|【[^】]*】)*?)】(https?://[^\s】]+)【([\d.]+)】'
 TEXT = """
 """
@@ -13,18 +10,22 @@ TEXT = """
 
 def parse_text(text, pattern):
     """
-    解析文本内容，识别匹配和未匹配的行，并给出未匹配原因。
+    解析文本内容，识别匹配和未匹配的行，并给出未匹配原因
 
     :param text: 待解析的文本
     :param pattern: 用于匹配的正则表达式
+
     :return: 匹配结果列表和未识别行列表
     """
+
     matches = []
     unrecognized_lines = []
 
     for line in text.strip().split('\n'):
+        line = line.replace(" ", "")
         if line.strip():
             match = re.match(pattern, line)
+
             if match:
                 matches.append(match)
             else:
@@ -36,21 +37,18 @@ def parse_text(text, pattern):
                 else:
                     reason = "格式不符合正则表达式要求"
                 print(f"未识别行: {line}\n原因: {reason}\n")
+
     return matches, unrecognized_lines
 
 
-def fill_excel(matches, excel_path):
+def check_mission(matches):
     """
-    将匹配结果填充到 Excel 文件中。
+    检查匹配结果是否符合要求
 
     :param matches: 匹配结果列表
-    :param excel_path: Excel 文件路径
-    :return: 填充的数据条数
+
+    :return: 无
     """
-    next_row = 5
-    app = xw.App(visible=False)
-    wb = app.books.open(excel_path)
-    ws = wb.sheets[0]
 
     for match in matches:
         line_num = match.group(1).strip()
@@ -58,7 +56,6 @@ def fill_excel(matches, excel_path):
         mission_proname = match.group(3).strip()
         mission_title = match.group(4).strip()
         mission_link = match.group(5).strip()
-
         mission_link_mt = re.search(r'/wp/(\d+)', mission_link)
         mission_id = ''
         if mission_link_mt:
@@ -67,30 +64,49 @@ def fill_excel(matches, excel_path):
 
         print(f"序号: {line_num}, 项目名称: {mission_proname}, 任务标题: {mission_title}")
 
-        ws.cells(next_row, 2).value = mission_proname
-        ws.cells(next_row, 3).value = mission_id
-        ws.cells(next_row, 4).value = mission_title
-        ws.cells(next_row, 5).value = mission_link
-        ws.cells(next_row, 6).value = '已完成'
-        ws.cells(next_row, 7).value = '中'
-        ws.cells(next_row, 14).value = mission_comptime
-        next_row += 1
+        url = f'{mission_id}'
+        headers = {
+        }
 
-    filled_count = len(matches)
-    wb.save()
-    wb.close()
-    app.quit()
-    return filled_count
+        response = requests.get(url, headers=headers)
+        data = response.json()
+
+        embedded = data['_embedded']
+        embedded_status = embedded['status']
+        embedded_project = embedded['project']
+        subject_id = data['id']
+        subject = data['subject']
+        html = data['description']['html']
+        estimated_time = data['estimatedTime']
+
+        status_name = embedded_status['name']
+        project_name = embedded_project['name']
+
+        match = re.search(
+            r'<p class="op-uc-p">预估工时/时长：(.*?)</p>', html)
+
+        if mission_id != str(subject_id):
+            print(f"项目ID不一致: {mission_id} -> {subject_id}")
+
+        if subject != mission_title:
+            print(f"任务标题不一致: {subject} -> {mission_title}")
+
+        if status_name != '待检查':
+            print(f"任务状态不是待检查: {status_name}")
+
+        if project_name != mission_proname:
+            print(f"项目名称不一致: {project_name} -> {mission_proname}")
+
+        cdth = convert_iso8601_to_hours(estimated_time)
+
+        if cdth != float(mission_comptime):
+            print(
+                f"自评时长不一致: {cdth} -> {mission_comptime}")
 
 
 def main():
     matches, unrecognized_lines = parse_text(TEXT, PATTERN)
-    recognized_count = len(matches)
-    filled_count = fill_excel(matches, EXCEL_PATH)
-
-    print(f"识别的数据条数: {recognized_count}")
-    print(f"填充到 Excel 的数据条数: {filled_count}")
-    print(f"未识别的数据条数: {len(unrecognized_lines)}")
+    check_mission(matches)
 
 
 if __name__ == "__main__":

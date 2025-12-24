@@ -1,7 +1,3 @@
-"""
-@description 检查周报或日报
-"""
-
 import pandas as pd
 import re
 import os
@@ -88,6 +84,32 @@ def check_duplicates(df, columns=["ID", "标题", "链接地址"]):
     return df[mask]
 
 
+def check_numeric_hours(row):
+    """
+    校验预估工时、完成工时和工作时长是否都是纯数字
+
+    :param row: DataFrame 的一行数据
+    :return: 布尔值，表示校验结果
+    """
+    # 需要校验的工时列名
+    hour_columns = ['预估工时', '完成工时', '工作时长']
+
+    for col in hour_columns:
+        # 检查列是否存在
+        if col not in row:
+            return False
+
+        value = row[col]
+        # 检查是否为数字类型
+        if not isinstance(value, (int, float)):
+            # 尝试转换字符串为数字
+            try:
+                float(value)
+            except (ValueError, TypeError):
+                return False
+    return True
+
+
 def run_checks(df, file_name, file_path):
     """
     执行所有校验，并将结果保存到新的 Excel 文件
@@ -99,15 +121,33 @@ def run_checks(df, file_name, file_path):
     df['ID和链接地址'] = df.apply(check_id_url, axis=1)
     df['预计、结束和完成时间'] = df.apply(check_dates, axis=1)
     df['预估和完成工时'] = df.apply(check_hours, axis=1)
+    df['是否纯数字'] = df.apply(check_numeric_hours, axis=1)
     duplicates = check_duplicates(df)
 
     if not duplicates.empty:
-        print("重复标题和链接地址:\n")
+        print("发现重复任务:\n")
         print(duplicates)
 
     output_file_fullpath = os.path.join(file_path, f"{file_name}_校验结果.xlsx")
-    df.to_excel(output_file_fullpath, index=False)
-    print(f"校验结果文件：{output_file_fullpath}")
+
+    with pd.ExcelWriter(output_file_fullpath, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+        # 获取工作簿和工作表对象
+        workbook = writer.book
+        worksheet = writer.sheets['Sheet1']
+
+        # 定义日期格式
+        date_format = workbook.add_format({'num_format': 'yyyy-mm-dd'})
+
+        # 设置日期列的格式（根据实际列名调整）
+        date_columns = ['预计开始', '预计结束', '完成时间']
+        for col_name in date_columns:
+            if col_name in df.columns:
+                # 获取列索引（+1是因为Excel列从1开始）
+                col_idx = df.columns.get_loc(col_name) + 1
+                # 设置整列格式
+                worksheet.set_column(col_idx, col_idx, None, date_format)
 
 
 def main():
