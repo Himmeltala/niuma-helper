@@ -1,8 +1,7 @@
-import pandas as pd
 import re
 import os
-
-EXCEL_PATH = rf''
+import pandas as pd
+from config.common import CHECK_REPORTS_PATH
 
 
 def get_file_path(file_path):
@@ -151,8 +150,8 @@ def run_checks(df, file_name, file_path):
 
 
 def main():
-    file_name, parent_path = get_file_path(EXCEL_PATH)
-    df = read_excel_file(EXCEL_PATH)
+    file_name, parent_path = get_file_path(CHECK_REPORTS_PATH)
+    df = read_excel_file(CHECK_REPORTS_PATH)
     run_checks(df, file_name, parent_path)
 
 

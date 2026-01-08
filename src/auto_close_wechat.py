@@ -7,7 +7,7 @@ QUIT_TIME = "17:30"
 TARGET_PROCESS_NAMES = ['WeChatAppEx.exe', 'Weixin.exe']
 
 current_date = datetime.datetime.now().strftime("%Y-%m-%d")
-log_root_path = ""
+log_root_path = "E:/项目/Python/日报周报自动化/logs"
 log_dir_path = os.path.join(log_root_path, current_date)
 os.makedirs(log_dir_path, exist_ok=True)
 log_file_path = os.path.join(log_dir_path, "auto_close_wechat.log")

@@ -1,11 +1,5 @@
-'''
-Author: zhengrenfu
-Date: 2025-12-23 10:34:02
-LastEditors: zhengrenfu
-LastEditTime: 2025-12-23 10:34:27
-Description: 
-'''
 import re
+import datetime
 
 
 def convert_iso8601_to_hours(duration_str: str) -> float:
@@ -31,3 +25,60 @@ def convert_iso8601_to_hours(duration_str: str) -> float:
     total_hours = hours + minutes / 60
     # 保留2位小数，解决浮点数精度问题（如30/60可能出现0.5000000000000001）
     return round(total_hours, 2)
+
+
+def get_month_week(date=None):
+    """
+    计算指定日期是当月的第几周（周一为一周起始）
+
+    :param date: 要计算的日期，默认是当前日期
+
+    :return: 当月的周数（int）
+    """
+    if date is None:
+        date = datetime.datetime.now()
+
+    # 获取当月第一天
+    first_day = datetime.datetime(date.year, date.month, 1)
+    # 计算当月第一天是周几（0=周一, 6=周日，isoweekday()返回1-7，1=周一）
+    first_day_weekday = first_day.isoweekday() - 1
+
+    # 计算当前日期与当月第一天的天数差
+    day_diff = (date - first_day).days
+
+    # 计算当月第几周（向上取整）
+    month_week = (day_diff + first_day_weekday) // 7 + 1
+    return month_week
+
+
+def get_week_date_range():
+    """
+    获取本周的日期范围（周一为起始，周日为结束）
+    :return: (本周一datetime对象, 本周日datetime对象)
+    """
+    today = datetime.datetime.now().date()
+    # 计算本周一（0=周一，6=周日）
+    monday = today - datetime.timedelta(days=today.weekday())
+    # 计算本周日
+    sunday = monday + datetime.timedelta(days=6)
+    return monday, sunday
+
+
+def date_in_week(date_str, monday, sunday):
+    """
+    校验日期是否在本周范围内
+    :param date_str: 日期字符串（格式：YYYY-MM-DD）
+    :param monday: 本周一date对象
+    :param sunday: 本周日date对象
+    :return: bool - True=在本周，False=超出本周
+    """
+    try:
+        # 解析日期字符串（支持YYYY-MM-DD格式）
+        date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        # 校验是否在本周范围内
+        if not (monday <= date_obj <= sunday):
+            return False
+        return True
+    except ValueError as e:
+        print(f"无法解析：{e}")
+        return False
