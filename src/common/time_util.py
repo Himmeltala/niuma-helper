@@ -73,6 +73,8 @@ def date_in_week(date_str, monday, sunday):
     :return: bool - True=在本周，False=超出本周
     """
     try:
+        if not date_str:
+            return False
         # 解析日期字符串（支持YYYY-MM-DD格式）
         date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
         # 校验是否在本周范围内

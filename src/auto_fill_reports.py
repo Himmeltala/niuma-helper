@@ -58,9 +58,7 @@ def fill_task_data_to_excel(matched_task_list, excel_file_path):
 
         # 遍历匹配的任务，校验通过则填充数据
         for task_match in matched_task_list:
-            is_task_qualified = check_mission(task_match)
-            if not is_task_qualified:
-                continue
+            check_mission(task_match)
 
             # 提取正则匹配的任务基础数据
             task_serial_num = task_match.group(1).strip()
